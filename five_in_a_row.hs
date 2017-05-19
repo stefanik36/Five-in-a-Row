@@ -1,11 +1,10 @@
---import Data.Map (Map)
 import qualified Data.Map as Map
+import qualified Data.Tree as Tree
 import Data.List
 
 data Color = B | W deriving Eq
 newtype Position = Pos (Int, Int) deriving (Show, Eq)
-newtype Board a = CBoard a
---newtype Null = Null deriving Show 
+newtype Board = Board(Map.Map Position Color)
 
 instance Ord Position where
     compare (Pos(l1,r1)) (Pos(l2,r2))
@@ -15,55 +14,82 @@ instance Ord Position where
         | l1 < l2 = LT
         | l1 > l2 = GT
 
-
-
-
-
 instance Show Color where
     show B = "x"
     show W = "o"
 
-mapRows = 3
+mapRows = 19
 cords = [1..mapRows]
 
+bMap = Map.fromList []
 
-bMap = Map.fromList [(Pos(x,y), B)| x <-cords, y<-cords]
+tBoard = Board bMap
 
-numberOfCells = (Map.size bMap)
+tmpMap = Map.fromList [(Pos(x,y), W)| x <-[8..12], y<-[4..7]]
 
-tPos = Pos(1,2)
-
-instance (Show b) => Show (Board b) where
+instance Show (Board) where
     show x = showBoard x
 
-
-
-showBoard (CBoard m) = intercalate "" [(showCell m x y)| x <-cords, y<-cords]
-
-tmp = CBoard bMap
-
-foo m x y
-    | Map.lookup (Pos(x,y)) m == Nothing = " _ "
-    | Map.lookup (Pos(x,y)) m == Just B = " "++ (show B) ++" "
-    | Map.lookup (Pos(x,y)) m == Just W = " "++ (show W) ++" "
-
---foo2 m x y = let showN = Map.lookup (Pos(x,y)) m in
---    (Maybe e)
-
-showCell m x y
-    | False == True = " _ "++checkWidth y++checkWidth x
-    | True == True = " c "++checkWidth y
+showBoard :: (Board) -> [Char]
+showBoard (Board m) = "\n"++intercalate "" [((showCell m (Pos(x, y)))++nextRow y)| x <-cords, y<-cords]
 
 
 
+showCell m pos
+    | Map.lookup pos m == Nothing = " - "
+    | Map.lookup pos m == Just B = " "++ (show B) ++" "
+    | Map.lookup pos m == Just W = " "++ (show W) ++" "
 
 
-checkWidth y 
+nextRow y 
     | y /= mapRows = ""
     | y == mapRows = "\n"
 
+getMap (Board(m)) = m
+
+--insertCellToMap pos c bMap = Map.insert pos c bMap
+
+insertCell pos c (Board map) = Board (Map.insert pos c map)
 
 
+-- #lab4
+
+data Game = Game Board Color deriving Show--Int
+
+
+tGame = Game tBoard B
+--Game -> [Game]
+--f: Board->C -> [Board]
+
+checkIfExists (Board map) pos = Map.lookup pos map == Nothing
+
+getOppositeColor c 
+    | c == B = W
+    | c == W = B
+
+
+posibleMoves (Game board color) =  [(Game (insertCell (Pos(x,y)) color board) (getOppositeColor color) )| x<-cords, y<-cords, checkIfExists board (Pos(x,y))]
+
+
+--createTree (Game (Board m) color)
+--    | m == Map.fromList [] = []
+
+
+createTree (Game board color) = Tree.Node (Game board color) (map createTree (posibleMoves (Game board color)))
+
+
+--quick check
+
+
+
+
+ 
+--testTree :: Tree Integer
+--testTree = Node 1 [ Node 2 [ Node 4 [ Node 6 [], Node 8 [] ],
+ --                            Node 5 [ Node 7 [], Node 9 [] ] ],
+ --                   Node 3 [ Node 10 [], 
+ --                            Node 11 [] ] 
+ --                 ]
 
 
 
