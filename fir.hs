@@ -27,7 +27,7 @@ instance Show (Board) where
     show x = showBoard x
 
 
-numberString = "x\\y " ++ intercalate "" (map (\x -> " "++show x++" ") [1..mapRows])--"x\\y  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 "
+numberString = "x\\y  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 "
 showBoard :: (Board) -> [Char]
 showBoard (Board m) = ("\n"++numberString++intercalate "" [((nextRow y x) ++ (showCell m (Pos(x, y))))| x <-cords, y<-cords])++"\n"
 
@@ -97,62 +97,24 @@ chooseMinOption list = list !! (minIndex (map (\x -> -(evaluationFunction x)) (g
 -- mocne TODO    
 tmp = getOptions iTree
 
+getChildren (Tree.Node _ list) = [map getChildren2 list]
+getChildren2 (Tree.Node _ list) = list
 
-createTreeInt i = Tree.Node i (map createTreeInt [1..3])
-
-
-
-{-
-getChildrenMax1 (Tree.Node _ list) = (map getChildrenMin2 list)
-getChildrenMin2 (Tree.Node _ list) = (map getChildrenMax3 list)
-getChildrenMax3 (Tree.Node _ list) =  (map evaluationFunction (getValueList list))-- getValueList list--maximum (map evaluationFunction (getValueList list))
-
-
-
-getChildrenMax 0 (Tree.Node _ list) = (map evaluationFunction (getValueList list))-- getValueList list--maximum (map evaluationFunction (getValueList list))
-getChildrenMax n (Tree.Node _ list) = (map (\x -> getChildrenMin (n-1) x) list)
-
-getChildrenMin 0 (Tree.Node _ list) = (map evaluationFunction (getValueList list))-- getValueList list--maximum (map evaluationFunction (getValueList list))
-getChildrenMin n (Tree.Node _ list) = (map (\x -> getChildrenMax (n-1) x) list)
--}
-
-
-
-getSubTree 0 v = Tree.Node v [] 
-
-
-
--- getSubTree n v = Tree.Node n (map getSubTree (n-1) v)
-
-
-
---drawVerticalTree 
-
-
-{-}
-
-getChildrenMax1 (Tree.Node _ list) = (map getValueFromTree list) !! maxIndex (map getChildrenMin2 list)
-getChildrenMin2 (Tree.Node _ list) = minimum (map getChildrenMax3 list)
-getChildrenMax3 (Tree.Node _ list) = maximum (map evaluationFunction (getValueList list))-- getValueList list--maximum (map evaluationFunction (getValueList list))
-
-getChildren(n Tree.Node _ list)
-    | n==0 = (map getValueFromTree list) !! maxIndex (map get) 
-
---getChildrenNew (Tree.Node _ list) = map [] list
-
--}
-getOptions (Tree.Node _ list) = map chooseOptionEnd list  
-chooseOptionEnd (Tree.Node _ list) = maximum (map evaluationFunction (getValueList list))
-
-tmp2 (Tree.Node _ list) =minimum (map (\(Tree.Node _ l)-> maximum (map evaluationFunction (getValueList l))) list)
-
-{-
 getOptions (Tree.Node _ list) = map chooseOptionEnd list  
 chooseOptionEnd (Tree.Node _ list) = maximum (map evaluationFunction (getValueList list))
 chooseOptionMin list = minimum list
 chooseOptionMax list = maximum list
--}
---profiler
+
+
+
+
+
+--chooseMinOption list = list !! (minIndex (map (\x -> -(evaluationFunction x)) (getValueList list)))
+get2thChild (Tree.Node v c) = []
+
+
+
+
 
 getValueList list = map (\x -> getValueFromTree x) list
 getValueFromTree (Tree.Node v _) = v
@@ -217,9 +179,6 @@ evaluationFunction game
     | isOptionA11 (changeColorInGame game) = 5
     | isOptionA12 (changeColorInGame game) = 1
     | otherwise = 0
-
-
-    --io var 
 
 --5 in line 
 isOptionA1 game = head (inLine 5 game) /= [] 
@@ -290,98 +249,3 @@ checkIfColor map pos color = (Map.lookup pos map == Just color) && (isOnBoard po
 checkIfExists (Board map) pos = isOnBoard pos && (Map.lookup pos map /= Nothing)   
 isOnBoard (Pos(x,y)) = x > 0 && x <= mapRows && y > 0 && y <= mapRows 
 
-
-
-{-
-
-checkColumnInArea n map color (Pos(x,y)) = [getFromListIndex [(inColumn n map color a y) | a<-[(x-n+1)..(x)]], filter (\x -> ((checkIfColor map x (getOppositeColor color)))) (getEdgePosColumn (head (getFromListIndex [(inColumn n map color a y) | a<-[(x-n+1)..(x)]])) (last (getFromListIndex [(inColumn n map color a y) | a<-[(x-n+1)..(x)]]))), filter (\x -> (not ((checkIfExists (Board map) x)))) (getEdgePosColumn (head (getFromListIndex [(inColumn n map color a y) | a<-[(x-n+1)..(x)]])) (last (getFromListIndex [(inColumn n map color a y) | a<-[(x-n+1)..(x)]])))]
-
-checkRowInArea n map color (Pos(x,y)) = [getFromListIndex [(inRow n map color x b) | b<-[(y-n+1)..(y)]], filter (\x -> ((checkIfColor map x (getOppositeColor color)))) (getEdgePosRow (head (getFromListIndex [(inRow n map color x b) | b<-[(y-n+1)..(y)]])) (last (getFromListIndex [(inRow n map color x b) | b<-[(y-n+1)..(y)]]))), filter (\x -> (not ((checkIfExists (Board map) x)))) (getEdgePosRow (head (getFromListIndex [(inRow n map color x b) | b<-[(y-n+1)..(y)]])) (last (getFromListIndex [(inRow n map color x b) | b<-[(y-n+1)..(y)]])))]
-
-checkRightDiagonalInArea n map color (Pos(x,y)) = [getFromListIndex [(inRightDiagonal n map color (x-k) (y-k)) | k<-[0..(n-1)]], filter (\x -> ((checkIfColor map x (getOppositeColor color)))) (getEdgePosColumn (head (getFromListIndex [(inRightDiagonal n map color (x-k) (y-k)) | k<-[0..(n-1)]])) (last (getFromListIndex [(inRightDiagonal n map color (x-k) (y-k)) | k<-[0..(n-1)]]))), filter (\x -> (not ((checkIfExists (Board map) x)))) (getEdgePosColumn (head (getFromListIndex [(inRightDiagonal n map color (x-k) (y-k)) | k<-[0..(n-1)]])) (last (getFromListIndex [(inRightDiagonal n map color (x-k) (y-k)) | k<-[0..(n-1)]])))]
-
-checkLeftDiagonalInArea n map color (Pos(x,y)) = [getFromListIndex [(inLeftDiagonal n map color (x+k) (y-k)) | k<-[0..(n-1)]], filter (\x ->  ((checkIfColor map x (getOppositeColor color)))) (getEdgePosColumn (head (getFromListIndex [(inLeftDiagonal n map color (x+k) (y-k)) | k<-[0..(n-1)]])) (last (getFromListIndex [(inLeftDiagonal n map color (x+k) (y-k)) | k<-[0..(n-1)]]))), filter (\x -> (not ((checkIfExists (Board map) x)))) (getEdgePosColumn (head (getFromListIndex [(inLeftDiagonal n map color (x+k) (y-k)) | k<-[0..(n-1)]])) (last (getFromListIndex [(inLeftDiagonal n map color (x+k) (y-k)) | k<-[0..(n-1)]])))]
-
-
-
-
-
-
-
-getEdgePosColumn (Pos(fx,fy)) (Pos(lx,ly))= [Pos(fx-1,fy), Pos(lx+1,ly)]
-getEdgePosRow (Pos(fx,fy)) (Pos(lx,ly))= [Pos(fx,fy-1), Pos(lx,ly+1)]
-getEdgePosRDiagonal (Pos(fx,fy)) (Pos(lx,ly))= [Pos(fx-1,fy-1), Pos(lx+1,ly+1)]
-getEdgePosLDiagonal (Pos(fx,fy)) (Pos(lx,ly))= [Pos(fx-1,fy+1), Pos(lx+1,ly-1)]
-
-
-inColumn n map color a b 
-    | and [(checkIfColor map (Pos(x, b)) color) | x<-[a..(a+n-1)]] = sort [(Pos(x, b)) | x<-[a..(a+n-1)]]
-    | True = []
-
-inRow n map color a b 
-    | and [(checkIfColor map (Pos(a, y)) color) | y<-[b..(b+n-1)]] = sort [(Pos(a, y)) | y<-[b..(b+n-1)]]
-    | True = []
-    
-inRightDiagonal n map color a b
-    | and [(checkIfColor map (Pos(a+k, b+k)) color) | k<-[0..n-1]] = sort [Pos(a+k, b+k) | k<-[0..n-1]]
-    | True = []
-
-inLeftDiagonal n map color a b
-    | and [(checkIfColor map (Pos(a-k, b+k)) color) | k<-[0..n-1]] = sort [Pos(a-k, b+k) | k<-[0..n-1]]
-    | True = []
-
-
--}
-
-
-
-{-
-
-
-
-
-
-
-
-
-
-
---quick check
-
---unlines
-
-
-
- 
-testTree :: Tree Integer
-testTree = Node 1 [ Node 2 [ Node 4 [ Node 6 [], Node 8 [] ],
-                            Node 5 [ Node 7 [], Node 9 [] ] ],
-                   Node 3 [ Node 10 [], 
-                            Node 11 [] ] 
-                 ]
-
-
-padding :: (Num a) => a -> String
-padding 0 = ""
-padding n = " " ++ padding(n-1)
-
-showTree :: (Show a, Num b) => Tree a -> b -> String
-showTree Leaf n = (padding n) ++ "."
-showTree (Node a l r ) n = let showl = showTree l (n+4) in
-                           let showr = showTree r (n+4) in
-                           let showc = (padding n) ++ (show a) in
-                           showc ++ "\n" ++ showl ++ "\n" ++ showr
-
-instance (Show a) => Show (Tree a) where
-    show a = showTree a 0
-
-
-
-data Cell = C Color Position deriving Show
-
-gameMap :: Integer -> Map Integer [Integer]
-gameMap n = Map.fromList (map makePair [1..n])
- where makePair x = (x, [1..n])
-
-(!) :: Position -> Color
--}
