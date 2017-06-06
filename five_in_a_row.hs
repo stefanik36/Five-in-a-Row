@@ -2,6 +2,26 @@ import qualified Data.Map as Map
 import qualified Data.Tree as Tree
 import Data.List
 
+
+--ADDED--
+import System.Environment
+import Control.Monad.Trans.State.Lazy
+import Text.ParserCombinators.Parsec
+import Text.ParserCombinators.Parsec.Token
+import Text.ParserCombinators.Parsec.Number
+import Text.ParserCombinators.Parsec.Char
+import Text.ParserCombinators.Parsec.Error
+import System.IO
+import Data.Maybe
+import Control.Monad.IO.Class
+import Data.Char
+import Data.Maybe
+--END--
+
+
+
+
+
 data Color = B | W deriving Eq
 newtype Position = Pos (Int, Int) deriving (Show, Eq)
 newtype Board = Board(Map.Map Position Color) deriving Eq
@@ -20,7 +40,7 @@ instance Show Color where
     show B = "B"                --"⚈"
     show W = "W"                --"⚆"
 
-mapRows = 19
+mapRows = 6
 cords = [1..mapRows]
 
 instance Show (Board) where
@@ -60,6 +80,206 @@ insertCell pos c (Board map) = Board (Map.insert pos c map)
 posibleMoves (Game board color pos) = [(Game (insertCell (Pos(x,y)) color board) (getOppositeColor color) (Pos(x,y)))| x<-cords, y<-cords, not(checkIfExists board (Pos(x,y)))]
 
 createTree game = Tree.Node game (map createTree (posibleMoves game))
+
+
+
+
+
+
+getNextTree (Tree.Node v list) pos = (filter (\x -> pos == (getNewPositionFromGame (getValueFromTree x))) list)!!0
+
+getNewPositionFromGame (Game board color pos) = pos
+move tree pos = getValueFromTree (getNextTree tree pos)
+
+
+
+
+getTree [] pos = getNextTree iTree pos
+getTree (x:xs) pos = getNextTree (getTree xs $ getNewPositionFromGame x) pos
+
+getTreeValue l pos = getValueFromTree $ getTree l pos 
+
+
+getBoardFromGame (Game board _ _) = board
+getColorFromGame (Game _ color _) = color
+
+
+----------------------------------------------------- Player Vs Player ------------------------------------------
+doPvp = pvp iTree
+
+pvp tree = do
+    i <- getLine
+    case parse parsePos "parse error" (i) of
+        Right p -> do
+            hPutStrLn stderr $ "ruch = " ++ (show (Pos p))
+            hPutStrLn stdout $ show $ getBoardFromGame $ getValueFromTree $ getNextTree tree (Pos p)
+            pvp $ getNextTree tree (Pos p)
+        Left x -> fail $ show x
+
+
+
+----------------------------------------------------- Player Vs CPU ------------------------------------------
+doPvcpu = pvcpu iTree
+
+pvcpu tree = 
+    if ((evaluationFunction $ getValueFromTree tree) == 100) then hPutStrLn stdout $ "won: "++ (show $ getColorFromGame $ getValueFromTree tree) else do  
+        hPutStrLn stdout $ show $ getBoardFromGame $ getValueFromTree $ tree
+        i <- getLine
+        case parse parsePos "parse error" (i) of
+            Right p -> do
+                hPutStrLn stderr $ "ruch = " ++ (show (Pos p))
+
+                hPutStrLn stdout $ show $ getBoardFromGame $ getValueFromTree $ getNextTree tree (Pos p)
+                -- hPutStrLn stdout $ show $ getBoardFromGame $ getValueFromTree $ cpuMove $ getNextTree tree (Pos p)
+                pvcpu $ cpuMove $ getNextTree tree (Pos p)
+            Left x -> fail $ show x
+
+
+--NEW FEATURES --
+--- cabal: parsec3, parsec-numbers
+
+
+
+parsePosI :: Parser Int
+parsePosI = do
+            x <- int
+            if (x<1 || x>mapRows) then
+              unexpected "Tylko liczby od 1-19"
+            else
+              return x
+
+parsePosC :: Parser Int
+parsePosC = do
+            x <- lower
+            if (x<'a' || x>'z') then
+              unexpected "Tylko znaki od a-z"
+            else
+              return $ (ord x) - (ord 'a') + 1
+
+
+parseSinglePos =  choice [parsePosI,parsePosC]
+parsePos = do
+              x <- parseSinglePos
+              spaces
+              y <- parseSinglePos
+              return (x,y)
+
+
+doPlay = getContents >>= (mapM_ play) . lines
+
+
+play i = do
+  case parse parsePos "Parse error" i of
+    -- Right pos -> (hPutStrLn stdout $ "ruch = " ++ (show (move (Pos pos))) ++ (show $ move $ getNewPositionFromGame $ getChildrenMax1 $ getNextTree testTree3 (Pos pos))) -- 
+    Right pos -> (hPutStrLn stderr $ "ruch = " ++ (show  (Pos pos)))
+    Left x -> fail $ show x
+
+
+main = doPlay
+
+
+
+
+
+
+--INITIAL--
+iMap = Map.empty
+iBoard = Board iMap
+iGame = Game iBoard W (Pos(0,0))
+iTree = createTree iGame
+--END--
+
+
+--TESTS--
+testMap1 = Map.fromList ([(Pos(x,y), W)| x <-[8..13], y<-[4..7]]++[(Pos(12,8), W),(Pos(12,3), W)]++[(Pos(7,4), B)])
+testMap2 = Map.fromList ([(Pos(5+k,6+k), B)| k <-[0..3]]++[(Pos(5+k,4+k), B)| k <-[0..3]]++[(Pos(5+k,5+k), W)| k <-[0..4]])
+
+testMap3 = Map.fromList ([(Pos(1,4), W),(Pos(1,3), W),(Pos(1,2), W),(Pos(2,4), W),(Pos(2,3), B)])
+testBoard3 = Board(testMap3)
+testGame3 = Game testBoard3 B (Pos(2,3))
+testTree3 = createTree testGame3
+
+testMap4 = Map.fromList ([(Pos(1,1), B)])
+testBoard4 = Board(testMap4)
+testGame4 = Game testBoard4 B (Pos(1,1))
+
+testMap6 = Map.fromList ([(Pos(1,2), W)])
+testBoard6 = Board(testMap6)
+testGame6 = Game testBoard6 W (Pos(1,2))
+
+
+testMap7 = Map.fromList ([(Pos(1,3), B)])
+testBoard7 = Board(testMap7)
+testGame7 = Game testBoard7 B (Pos(1,3))
+
+
+
+testMap5 = Map.fromList ([(Pos(16+k,6), B)| k <-[0..3]]++[(Pos(15,6), W)])
+testBoard5 = Board(testMap5)
+testGame5 = Game testBoard5 B (Pos(16,6))
+
+
+--tmp =  getValueFromTree (exploreTree $ exploreTree $ exploreTree $ exploreTree $ exploreTree $ exploreTree iTree)
+
+--END--
+
+
+
+
+
+{-
+printHistory :: Show a => [a] -> IO ()
+printHistory h =  do
+  hPutStrLn stderr "History"
+  mapM_ (hPutStrLn stderr.show) h
+
+type Play a = StateT [(Int,Int)] IO a
+playS :: String -> Play ()
+playS i = do
+  history <- get
+  case parse parsePos "Parse error" i of
+    Right  pos->
+              let newHistory = pos:history
+              in (liftIO $ hPutStrLn stderr $ "ruch = " ++ (show pos))
+                 >> put newHistory
+    Left _ -> fail ("koniec")
+  liftIO $ printHistory history
+
+
+doPlayS = liftIO getContents >>= (mapM_ playS) . lines
+
+mainS = evalStateT doPlayS []
+-}
+-- main = putStrLn $ show $ length $ levels $ gameTree $ initGame 3
+
+--END--
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -128,19 +348,28 @@ getSubTree 0 v = Tree.Node v []
 
 --drawVerticalTree 
 
+cpuMove tree = gcm1 tree
 
-{-}
+gcm1 (Tree.Node _ list) = list !! maxIndex (map gcm2 list)--(map getValueFromTree list) !! maxIndex (map gcm2 list)
+gcm2 (Tree.Node _ list) = minimum (map evaluationFunction (getValueList list))
 
-getChildrenMax1 (Tree.Node _ list) = (map getValueFromTree list) !! maxIndex (map getChildrenMin2 list)
-getChildrenMin2 (Tree.Node _ list) = minimum (map getChildrenMax3 list)
+getChildrenMax1 (Tree.Node _ list) = list !! maxIndex (map getChildrenMin2 list)
+getChildrenMin2 (Tree.Node _ list) = minimum (map getChildrenMax3 list)--(map evaluationFunction (getValueList list))--(map getChildrenMax3 list)
 getChildrenMax3 (Tree.Node _ list) = maximum (map evaluationFunction (getValueList list))-- getValueList list--maximum (map evaluationFunction (getValueList list))
 
+
+
+{-}
 getChildren(n Tree.Node _ list)
     | n==0 = (map getValueFromTree list) !! maxIndex (map get) 
 
 --getChildrenNew (Tree.Node _ list) = map [] list
 
 -}
+
+
+
+
 getOptions (Tree.Node _ list) = map chooseOptionEnd list  
 chooseOptionEnd (Tree.Node _ list) = maximum (map evaluationFunction (getValueList list))
 
@@ -168,36 +397,6 @@ minIndex list = snd . minimumBy cmp $ zip list [0 .. ] where
                         ne -> ne
 
 
---INITIAL--
-iMap = Map.empty
-iBoard = Board iMap
-iGame = Game iBoard W (Pos(0,0))
-iTree = createTree iGame
---END--
-
-
---TESTS--
-testMap1 = Map.fromList ([(Pos(x,y), W)| x <-[8..13], y<-[4..7]]++[(Pos(12,8), W),(Pos(12,3), W)]++[(Pos(7,4), B)])
-testMap2 = Map.fromList ([(Pos(5+k,6+k), B)| k <-[0..3]]++[(Pos(5+k,4+k), B)| k <-[0..3]]++[(Pos(5+k,5+k), W)| k <-[0..4]])
-
-testMap3 = Map.fromList ([(Pos(13,4), W),(Pos(13,3), W),(Pos(13,2), W),(Pos(12,4), W),(Pos(12,3), B)])
-testBoard3 = Board(testMap3)
-testGame3 = Game testBoard3 B (Pos(12,3))
-
-testMap4 = Map.fromList ([(Pos(1,1), B)])
-testBoard4 = Board(testMap4)
-testGame4 = Game testBoard4 B (Pos(1,1))
-
-testMap5 = Map.fromList ([(Pos(16+k,6), B)| k <-[0..3]]++[(Pos(15,6), W)])
-testBoard5 = Board(testMap5)
-testGame5 = Game testBoard5 B (Pos(16,6))
-
-
---tmp =  getValueFromTree (exploreTree $ exploreTree $ exploreTree $ exploreTree $ exploreTree $ exploreTree iTree)
-
---END--
-
-
 
 
 --evaluationFunction :: Game -> Int
@@ -211,11 +410,11 @@ evaluationFunction game
     | isOptionA5 (changeColorInGame game) = 38
     | isOptionA6 (changeColorInGame game) = 30
     | isOptionA7 (changeColorInGame game) = 28
-    | isOptionA8 (changeColorInGame game) = 20
-    | isOptionA9 (changeColorInGame game) = 15
-    | isOptionA10 (changeColorInGame game) = 10
-    | isOptionA11 (changeColorInGame game) = 5
-    | isOptionA12 (changeColorInGame game) = 1
+    | isOptionA8 (changeColorInGame game) = -20
+    | isOptionA9 (changeColorInGame game) = -15
+    | isOptionA10 (changeColorInGame game) = -10
+    | isOptionA11 (changeColorInGame game) = -5
+    | isOptionA12 (changeColorInGame game) = -1
     | otherwise = 0
 
 
