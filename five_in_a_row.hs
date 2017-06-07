@@ -40,7 +40,7 @@ instance Show Color where
     show B = "B"                --"⚈"
     show W = "W"                --"⚆"
 
-mapRows = 6
+mapRows = 8 
 cords = [1..mapRows]
 
 instance Show (Board) where
@@ -121,16 +121,19 @@ pvp tree = do
 ----------------------------------------------------- Player Vs CPU ------------------------------------------
 doPvcpu = pvcpu iTree
 
+checkEnd game = ((evaluationFunction game) == 100)
+showWinner game = hPutStrLn stdout $ "won: " ++ (show $ getOppositeColor $ getColorFromGame game)
+
+
 pvcpu tree = 
-    if ((evaluationFunction $ getValueFromTree tree) == 100) then hPutStrLn stdout $ "won: "++ (show $ getColorFromGame $ getValueFromTree tree) else do  
+        if(checkEnd $ getValueFromTree tree) then showWinner $ getValueFromTree tree else do
         hPutStrLn stdout $ show $ getBoardFromGame $ getValueFromTree $ tree
         i <- getLine
         case parse parsePos "parse error" (i) of
             Right p -> do
                 hPutStrLn stderr $ "ruch = " ++ (show (Pos p))
-
                 hPutStrLn stdout $ show $ getBoardFromGame $ getValueFromTree $ getNextTree tree (Pos p)
-                -- hPutStrLn stdout $ show $ getBoardFromGame $ getValueFromTree $ cpuMove $ getNextTree tree (Pos p)
+                if (checkEnd $ getValueFromTree $ getNextTree tree (Pos p)) then showWinner $ getValueFromTree $ getNextTree tree (Pos p) else do
                 pvcpu $ cpuMove $ getNextTree tree (Pos p)
             Left x -> fail $ show x
 
@@ -350,8 +353,10 @@ getSubTree 0 v = Tree.Node v []
 
 cpuMove tree = gcm1 tree
 
-gcm1 (Tree.Node _ list) = list !! maxIndex (map gcm2 list)--(map getValueFromTree list) !! maxIndex (map gcm2 list)
-gcm2 (Tree.Node _ list) = minimum (map evaluationFunction (getValueList list))
+gcm1 (Tree.Node _ list) = list !! minIndex (map gcm2 list)--(map getValueFromTree list) !! maxIndex (map gcm2 list)
+gcm2 (Tree.Node _ list) = maximum (map evaluationFunction (getValueList list)) --(map gcm3 list)
+gcm3 (Tree.Node _ list) = minimum (map evaluationFunction (getValueList list))
+
 
 getChildrenMax1 (Tree.Node _ list) = list !! maxIndex (map getChildrenMin2 list)
 getChildrenMin2 (Tree.Node _ list) = minimum (map getChildrenMax3 list)--(map evaluationFunction (getValueList list))--(map getChildrenMax3 list)
